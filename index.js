@@ -44,19 +44,28 @@ app.get('/asyncAwaitReadSFTP', function (req, res) {
     });
 });
 
-app.get('/getLocalDirStats', function (req, res) {
+app.get('/stats/remote', function (req, res) {
+  let sftp = new Client(`${req.ip}-${new Date()}`);
+  sftp.connect(conf).then(() => {
+    return sftp.list(src)
+  }).then((data) => {
+    res.json(data);
+    return sftp.end();
+  }).catch(err => {
+    console.log(err, 'catch error');
+  });
+});
+
+app.get('/stats/locale', function (req, res) {
   let fileStats = []
   let fileNames = fs.readdirSync(dst);
   fileNames.forEach(filename => {
     const filepath = path.join(dst, filename);
-    fs.stat(filepath, function(error, stat) {
-      if (error) throw error;
-      const isFile = stat.isFile();
-      console.log(isFile, stat);
-      if (isFile) {
-        fileStats.push(stat);
-      }
-    });
+    const fileStat = fs.statSync(filepath);
+    const isFile = fileStat.isFile();
+    if (isFile) {
+      fileStats.push(fileStat);
+    }
   });
   res.json(fileStats);
 });
