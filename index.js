@@ -50,13 +50,14 @@ app.get('/stats/remote', function (req, res) {
     return sftp.list(src)
   }).then((data) => {
     res.json(data);
-    return sftp.end();
+  }).then(()=> {
+    sftp.end();
   }).catch(err => {
     console.log(err, 'catch error');
   });
 });
 
-app.get('/stats/locale', function (req, res) {
+app.get('/stats/local', function (req, res) {
   let fileStats = []
   let fileNames = fs.readdirSync(dst);
   fileNames.forEach(filename => {
@@ -64,13 +65,13 @@ app.get('/stats/locale', function (req, res) {
     const fileStat = fs.statSync(filepath);
     const isFile = fileStat.isFile();
     if (isFile) {
-      fileStats.push(fileStat);
+      fileStats.push({name: filename, ...fileStat});
     }
   });
   res.json(fileStats);
 });
 
-app.get('/readSFTP', function (req, res) {
+app.get('/download', function (req, res) {
   // let sftp = new Client(`${req.ip}-${new Date()}`);
   // sftp.connect(conf).then(() => {
   //   // sftp.on('download', info => {
