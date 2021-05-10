@@ -4,6 +4,9 @@ require('dotenv').config()
 const express = require('express');
 const app = express();
 let Client = require('ssh2-sftp-client');
+const { intersectionBy } = require('lodash');
+
+const {getRemoteDirStats, getLocaleDirStats, lookup} = require("./utils");
 
 const conf = {
   host: process.env.HOST,
@@ -45,7 +48,7 @@ app.get('/asyncAwaitReadSFTP', function (req, res) {
 });
 
 app.get('/stats/remote', function (req, res) {
-  let sftp = new Client(`${req.ip}-${new Date()}`);
+  let sftp = new Client();
   sftp.connect(conf).then(() => {
     return sftp.list(src)
   }).then((data) => {
@@ -55,47 +58,36 @@ app.get('/stats/remote', function (req, res) {
   }).catch(err => {
     console.log(err, 'catch error');
   });
+  // getRemoteDirStats(src).then((data) => res.json(data));
 });
 
 app.get('/stats/local', function (req, res) {
-  let fileStats = []
-  let fileNames = fs.readdirSync(dst);
-  fileNames.forEach(filename => {
-    const filepath = path.join(dst, filename);
-    const fileStat = fs.statSync(filepath);
-    const isFile = fileStat.isFile();
-    if (isFile) {
-      fileStats.push({name: filename, ...fileStat});
-    }
-  });
-  res.json(fileStats);
+  res.json(getLocaleDirStats(dst));
 });
 
 app.get('/download', function (req, res) {
-  // let sftp = new Client(`${req.ip}-${new Date()}`);
-  // sftp.connect(conf).then(() => {
-  //   // sftp.on('download', info => {
-  //   //   console.log('Listener:');
-  //   //   console.log(info);
-  //   // });
-  //   // return {
-  //   //   sftpStat: sftp.stat(src), 
-  //   //   dowloadDir: sftp.downloadDir(src, dst)
-  //   // };
-  //   return sftp.list(src)
-  // }).then((data) => {
-  //   let fullData = {
-  //     readDir: fs.readdir(dst, {withFileTypes: true}, (err, data) => {
-  //     if (err) throw err;
-  //     console.log(data);
-  //   }), listSftp: data};
-  //   res.json(fullData);
-  //   // console.log(fullData);
-  //   return sftp.end();
-  // }).catch(err => {
-  //   console.log(err, 'catch error');
-  // });
-  res.send("READ_SFTP")
+  let sftp = new Client();
+  sftp.connect(conf).then(() => {
+    return sftp.downloadDir(src, dst)
+  }).then((info) => {
+    console.log(info);
+    return sftp.list(src)
+  }).then((sftpStats) => {
+    let localeStats = getLocaleDirStats(dst) 
+
+    // Busco a los que tienen el mismo nombre
+    let intersectionByName = intersectionBy(sftpStats, localeStats, 'name'); 
+    console.log(intersectionByName);
+    // intersectionByName.forEach(stat => {
+    //   stat.name
+    // });
+    // res.json(intersectionByName); 
+  }).then(()=> {
+    sftp.end();
+    res.send('descarga completa')
+  }).catch(err => {
+    console.log(err, 'catch error');
+  });
 });
 
 app.listen(3000, function () {
