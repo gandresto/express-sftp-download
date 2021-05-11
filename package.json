@@ -4,7 +4,7 @@
   "description": "Servidor express para detectar cambios en repositorios sftp remotos",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "author": "Andrés González",
   "license": "ISC",
