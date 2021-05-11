@@ -4,9 +4,9 @@ require('dotenv').config()
 const express = require('express');
 const app = express();
 let Client = require('ssh2-sftp-client');
-const { intersectionBy } = require('lodash');
+const { intersectionBy, find } = require('lodash');
 
-const {getRemoteDirStats, getLocaleDirStats, lookup} = require("./utils");
+const { getRemoteDirStats, getLocaleDirStats, lookup } = require("./utils");
 
 const conf = {
   host: process.env.HOST,
@@ -42,8 +42,8 @@ app.get('/asyncAwaitReadSFTP', function (req, res) {
   downloadDir(sftp)
     .then((data) => res.json(data))
     .catch(err => {
-      console.log(err, 'catch error');
-      res.json(error)
+      console.log(err);
+      res.status(500).json(err);
     });
 });
 
@@ -53,10 +53,11 @@ app.get('/stats/remote', function (req, res) {
     return sftp.list(src)
   }).then((data) => {
     res.json(data);
-  }).then(()=> {
+  }).then(() => {
     sftp.end();
   }).catch(err => {
-    console.log(err, 'catch error');
+    res.status(500).json(err);
+    console.log(err);
   });
   // getRemoteDirStats(src).then((data) => res.json(data));
 });
@@ -70,23 +71,39 @@ app.get('/download', function (req, res) {
   sftp.connect(conf).then(() => {
     return sftp.downloadDir(src, dst)
   }).then((info) => {
-    console.log(info);
     return sftp.list(src)
   }).then((sftpStats) => {
-    let localeStats = getLocaleDirStats(dst) 
+    let localStats = getLocaleDirStats(dst)
 
     // Busco a los que tienen el mismo nombre
-    let intersectionByName = intersectionBy(sftpStats, localeStats, 'name'); 
+    let intersectionByName = intersectionBy(sftpStats, localStats, 'name');
+    intersectionByName = intersectionByName.map(intersectionStat => {
+      if (
+        find(
+          localStats,
+          (localStat) =>
+            localStat.name == intersectionStat.name
+            && localStat.size == intersectionStat.size
+        ))
+        return { 
+          name: intersectionStat.name, 
+          size: intersectionStat.size, 
+          toBeDeleted: 1 
+        }
+      else
+        return { 
+          name: intersectionStat.name, 
+          size: intersectionStat.size, 
+          toBeDeleted: 0
+        }
+    });
     console.log(intersectionByName);
-    // intersectionByName.forEach(stat => {
-    //   stat.name
-    // });
-    // res.json(intersectionByName); 
-  }).then(()=> {
+    res.json(intersectionByName);
+  }).then(() => {
     sftp.end();
-    res.send('descarga completa')
   }).catch(err => {
-    console.log(err, 'catch error');
+    console.log(err);
+    res.status(500).json(err);
   });
 });
 
