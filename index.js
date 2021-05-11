@@ -1,12 +1,10 @@
-const fs = require('fs');
-const path = require('path');
 require('dotenv').config()
 const express = require('express');
 const app = express();
 let Client = require('ssh2-sftp-client');
 const { intersectionBy, find } = require('lodash');
 
-const { getRemoteDirStats, getLocaleDirStats, lookup } = require("./utils");
+const { getLocaleDirStats} = require("./utils");
 
 const conf = {
   host: process.env.HOST,
@@ -21,11 +19,6 @@ const dst = "./download";
 async function downloadDir(sftp) {
   try {
     await sftp.connect(conf);
-    // fs.readdir(dst, { withFileTypes: true }, (err, data) => {
-    //   if (err)
-    //     throw err;
-    //   console.log(data);
-    // })
     return await sftp.list(src);
   } catch (error) {
     console.log(error)
