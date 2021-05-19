@@ -11,7 +11,7 @@ const conf = {
 
 module.exports = {
   getRemoteDirStats: function (remotePath) {
-    let sftp = new Client();
+    const sftp = new Client();
     return sftp.connect(conf).then(() => {
       return sftp.list(remotePath)
     }).then((data) => {
@@ -22,20 +22,22 @@ module.exports = {
     });
   },
   getLocaleDirStats: function (localPath) {
-    let fileStats = []
-    let fileNames = fs.readdirSync(localPath);
-    fileNames.forEach(filename => {
-      const filepath = path.join(localPath, filename);
-      const fileStat = fs.statSync(filepath);
-      const isFile = fileStat.isFile();
-      if (isFile) {
-        fileStats.push({ name: filename, ...fileStat });
-      }
-    });
-    return fileStats
+    const fileStats = []
+    try {
+      const fileNames = fs.readdirSync(localPath);
+      fileNames.forEach(filename => {
+        const filepath = path.join(localPath, filename);
+        const fileStat = fs.statSync(filepath);
+        const isFile = fileStat.isFile();
+        if (isFile) {
+          fileStats.push({ name: filename, ...fileStat });
+        }
+      });
+      return fileStats;
+    } catch (error) {
+      if (error && error.code === 'ENOENT')
+        return fileStats;
+      return error;
+    }
   },
-  // lookup: function (list1, list2) {
-  //   list1.filter((set => a => set.has(a.name))(new Set(list2.map(b => b.name))))
-  // },
-
 }
