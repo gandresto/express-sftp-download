@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  sftp:
+    image: atmoz/sftp
+    volumes:
+      - main-volume
+    ports:
+      - '${PORT}:22'
+    command: ${USER}:${PASSWORD}:::${SRC_DIR}
